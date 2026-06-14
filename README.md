@@ -20,6 +20,8 @@ Default mode is `SUGGEST_ONLY`. In this mode the fallback service is called and 
 
 The test framework remains responsible for driver lifecycle, TestNG/JUnit hooks, browser options, grid configuration and page objects.
 
+Selenium and Jackson are declared with `provided` scope. The consuming e2e framework must provide the approved runtime versions through its own dependency management.
+
 ## Maven
 
 ```xml
