@@ -70,6 +70,8 @@ class ArubaHealerClientTest {
                 Set.of("cssselector", "xpath"),
                 Path.of("target/test-healing-report"),
                 true,
+                true,
+                true,
                 Duration.ofMillis(500)
         );
     }

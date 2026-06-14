@@ -14,6 +14,7 @@ public record HealingAudit(
         LocatorPayload failedLocator,
         List<HealingCandidate> candidates,
         HealingCandidate selectedCandidate,
+        ElementBox selectedElementBox,
         HealingResult result,
         String exception
 ) {

@@ -28,6 +28,8 @@ public final class Support {
                         .collect(Collectors.toUnmodifiableSet()),
                 Path.of("target/test-healing-report"),
                 true,
+                true,
+                true,
                 Duration.ofMillis(500)
         );
     }

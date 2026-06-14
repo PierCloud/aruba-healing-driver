@@ -22,6 +22,10 @@ The test framework remains responsible for driver lifecycle, TestNG/JUnit hooks,
 
 Selenium and Jackson are declared with `provided` scope. The consuming e2e framework must provide the approved runtime versions through its own dependency management.
 
+Healenium remains the first healing layer when `ARUBA_HEALENIUM_ENABLED=true`. Native Healenium reports, screenshots, highlighted elements and frontend views are produced by the Healenium runtime stack when its backend/report components are configured in the consuming test environment.
+
+The custom fallback report is controlled by `ARUBA_HEALING_REPORT_ENABLED`. It writes JSON audit files and, when a fallback candidate is applied with a screenshot available, an HTML report with the selected element highlighted.
+
 ## Maven
 
 ```xml
@@ -72,6 +76,8 @@ ARUBA_HEALING_MIN_CONFIDENCE=0.90
 ARUBA_HEALING_ALLOWED_STRATEGIES=cssSelector,xpath,id,name
 ARUBA_HEALING_REPORT_DIR=target/healing-report
 ARUBA_HEALING_SCREENSHOT=true
+ARUBA_HEALENIUM_ENABLED=true
+ARUBA_HEALING_REPORT_ENABLED=true
 ARUBA_HEALING_TIMEOUT_MS=3000
 ```
 
@@ -125,13 +131,45 @@ Response:
 
 ## Audit
 
-Audit files are written as JSON under:
+Custom fallback reports are written under:
 
 ```text
 target/healing-report
 ```
 
-Each file records the failed locator, runtime mode, fallback candidates, selected candidate and final result.
+Artifacts:
+
+```text
+*.json   audit data
+*.html   visual fallback report when a candidate is applied
+*.png    screenshot used by the HTML report
+```
+
+Each JSON file records the failed locator, runtime mode, fallback candidates, selected candidate, selected element rectangle and final result.
+
+The HTML report is written only when all these conditions are true:
+
+```text
+ARUBA_HEALING_REPORT_ENABLED=true
+ARUBA_HEALING_SCREENSHOT=true
+runtime result is HEALED
+the healed WebElement exposes a valid rectangle
+the wrapped driver implements TakesScreenshot
+```
+
+## Report Switches
+
+```text
+ARUBA_HEALENIUM_ENABLED=true
+```
+
+Enables the Healenium `SelfHealingDriver` layer. When disabled, the wrapper delegates directly to the provided Selenium driver and only the custom fallback layer can run.
+
+```text
+ARUBA_HEALING_REPORT_ENABLED=true
+```
+
+Enables the custom fallback report. When disabled, no custom JSON, HTML or screenshot artifact is written.
 
 ## Release
 

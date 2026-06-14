@@ -15,6 +15,8 @@ public record ArubaHealingConfig(
         Set<String> allowedStrategies,
         Path reportDir,
         boolean screenshotEnabled,
+        boolean healeniumEnabled,
+        boolean customReportEnabled,
         Duration timeout
 ) {
 
@@ -26,6 +28,8 @@ public record ArubaHealingConfig(
                 strategies(env("ARUBA_HEALING_ALLOWED_STRATEGIES", "cssSelector,xpath,id,name")),
                 Path.of(env("ARUBA_HEALING_REPORT_DIR", "target/healing-report")),
                 Boolean.parseBoolean(env("ARUBA_HEALING_SCREENSHOT", "true")),
+                Boolean.parseBoolean(env("ARUBA_HEALENIUM_ENABLED", "true")),
+                Boolean.parseBoolean(env("ARUBA_HEALING_REPORT_ENABLED", "true")),
                 Duration.ofMillis(Long.parseLong(env("ARUBA_HEALING_TIMEOUT_MS", "3000")))
         );
     }

@@ -5,6 +5,7 @@ import it.aruba.qaa.healing.client.HealerClient;
 import it.aruba.qaa.healing.config.ArubaHealingConfig;
 import it.aruba.qaa.healing.context.TestContext;
 import it.aruba.qaa.healing.context.TestContextProvider;
+import it.aruba.qaa.healing.model.ElementBox;
 import it.aruba.qaa.healing.model.HealingAudit;
 import it.aruba.qaa.healing.model.HealingCandidate;
 import it.aruba.qaa.healing.model.HealingRequest;
@@ -16,6 +17,7 @@ import it.aruba.qaa.healing.report.HealingReportWriter;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.OutputType;
+import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -106,7 +108,7 @@ public final class ArubaHealingDriver implements WebDriver, JavascriptExecutor, 
 
         try {
             WebElement element = delegate.findElement(selected.locator().toBy());
-            writeAudit(failedLocator, candidates, selected, HealingResult.HEALED, originalException);
+            writeAudit(failedLocator, candidates, selected, elementBox(element), HealingResult.HEALED, originalException);
             return element;
         } catch (RuntimeException healingException) {
             writeAudit(failedLocator, candidates, selected, HealingResult.NOT_HEALED, originalException);
@@ -134,6 +136,20 @@ public final class ArubaHealingDriver implements WebDriver, JavascriptExecutor, 
             HealingResult result,
             RuntimeException exception
     ) {
+        writeAudit(failedLocator, candidates, selected, null, result, exception);
+    }
+
+    private void writeAudit(
+            By failedLocator,
+            List<HealingCandidate> candidates,
+            HealingCandidate selected,
+            ElementBox selectedElementBox,
+            HealingResult result,
+            RuntimeException exception
+    ) {
+        if (!config.customReportEnabled()) {
+            return;
+        }
         TestContext context = contextProvider.current();
         reportWriter.write(new HealingAudit(
                 Instant.now(),
@@ -144,9 +160,10 @@ public final class ArubaHealingDriver implements WebDriver, JavascriptExecutor, 
                 LocatorPayload.from(failedLocator),
                 candidates,
                 selected,
+                selectedElementBox,
                 result,
                 exception.getClass().getSimpleName() + ": " + exception.getMessage()
-        ));
+        ), screenshotBytes(), selectedElementBox);
     }
 
     private String safeCurrentUrl() {
@@ -166,12 +183,25 @@ public final class ArubaHealingDriver implements WebDriver, JavascriptExecutor, 
     }
 
     private String screenshotBase64() {
+        byte[] bytes = screenshotBytes();
+        return bytes == null ? null : Base64.getEncoder().encodeToString(bytes);
+    }
+
+    private byte[] screenshotBytes() {
         if (!config.screenshotEnabled() || !(delegate instanceof TakesScreenshot screenshotDriver)) {
             return null;
         }
         try {
-            byte[] bytes = screenshotDriver.getScreenshotAs(OutputType.BYTES);
-            return Base64.getEncoder().encodeToString(bytes);
+            return screenshotDriver.getScreenshotAs(OutputType.BYTES);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static ElementBox elementBox(WebElement element) {
+        try {
+            Rectangle rect = element.getRect();
+            return new ElementBox(rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
         } catch (RuntimeException e) {
             return null;
         }

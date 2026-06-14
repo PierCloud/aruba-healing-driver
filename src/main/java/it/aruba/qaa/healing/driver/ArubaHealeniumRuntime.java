@@ -23,7 +23,7 @@ public final class ArubaHealeniumRuntime {
             ArubaHealingConfig config,
             TestContextProvider contextProvider
     ) {
-        WebDriver healeniumDriver = SelfHealingDriver.create(baseDriver);
-        return ArubaHealingDriver.wrap(healeniumDriver, config, contextProvider);
+        WebDriver delegate = config.healeniumEnabled() ? SelfHealingDriver.create(baseDriver) : baseDriver;
+        return ArubaHealingDriver.wrap(delegate, config, contextProvider);
     }
 }

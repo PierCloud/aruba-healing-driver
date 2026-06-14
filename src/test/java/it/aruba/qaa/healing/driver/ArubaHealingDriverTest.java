@@ -14,9 +14,11 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.OutputType;
+import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.WrapsDriver;
 
 import java.lang.reflect.Proxy;
 import java.net.URI;
@@ -55,7 +57,7 @@ class ArubaHealingDriverTest {
 
         assertSame(healedElement, found);
         assertEquals(2, delegate.findCalls);
-        assertEquals(1, Files.list(reportDir).count());
+        assertEquals(3, Files.list(reportDir).count());
     }
 
     @Test
@@ -78,7 +80,45 @@ class ArubaHealingDriverTest {
         assertEquals(1, delegate.findCalls);
     }
 
+    @Test
+    void disabledCustomReportDoesNotWriteArtifacts() throws Exception {
+        WebElement healedElement = element();
+        FakeWebDriver delegate = new FakeWebDriver(By.cssSelector("button[data-testid='confirm']"), healedElement);
+        HealerClient healerClient = request -> new HealingResponse(
+                "candidate_found",
+                List.of(new HealingCandidate("cssSelector", "button[data-testid='confirm']", 0.96, "stable test id"))
+        );
+        WebDriver driver = ArubaHealingDriver.wrap(
+                delegate,
+                config(HealingMode.ASSISTED_HEAL, false, true),
+                healerClient,
+                new HealingReportWriter(reportDir),
+                context()
+        );
+
+        driver.findElement(By.cssSelector("#confirm"));
+
+        assertEquals(0, Files.list(reportDir).count());
+    }
+
+    @Test
+    void disabledHealeniumUsesBaseDriverAsDelegate() {
+        FakeWebDriver baseDriver = new FakeWebDriver(By.cssSelector("button[data-testid='confirm']"), element());
+
+        WebDriver driver = ArubaHealeniumRuntime.create(
+                baseDriver,
+                config(HealingMode.SUGGEST_ONLY, true, false),
+                context()
+        );
+
+        assertSame(baseDriver, ((WrapsDriver) driver).getWrappedDriver());
+    }
+
     private ArubaHealingConfig config(HealingMode mode) {
+        return config(mode, true, true);
+    }
+
+    private ArubaHealingConfig config(HealingMode mode, boolean customReportEnabled, boolean healeniumEnabled) {
         return new ArubaHealingConfig(
                 mode,
                 URI.create("http://localhost:8025"),
@@ -86,6 +126,8 @@ class ArubaHealingDriverTest {
                 Set.of("cssselector", "xpath"),
                 reportDir,
                 true,
+                healeniumEnabled,
+                customReportEnabled,
                 Duration.ofMillis(500)
         );
     }
@@ -103,7 +145,8 @@ class ArubaHealingDriverTest {
                     case "getText" -> "Confirm";
                     case "getTagName" -> "button";
                     case "getAttribute", "getDomAttribute", "getDomProperty", "getCssValue" -> null;
-                    case "getRect", "getLocation", "getSize", "getScreenshotAs" -> null;
+                    case "getRect" -> new Rectangle(10, 20, 120, 32);
+                    case "getLocation", "getSize", "getScreenshotAs" -> null;
                     default -> null;
                 }
         );
